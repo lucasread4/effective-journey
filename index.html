@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>⚽ FIFA World Cup 2026 Draft Board | Real Squads</title>
+    <title>📊 FIFA World Cup 2026 Draft - Google Sheets Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
@@ -12,20 +12,55 @@
         body { background: linear-gradient(135deg, #f1f5f9 0%, #e9eef3 100%); }
         .card-hover { transition: all 0.2s ease; }
         .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 20px -10px rgba(0,0,0,0.1); }
-        .scrollable-list { max-height: 62vh; overflow-y: auto; scrollbar-width: thin; }
+        .scrollable-list { max-height: 55vh; overflow-y: auto; scrollbar-width: thin; }
         .scrollable-list::-webkit-scrollbar { width: 5px; }
         .scrollable-list::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 10px; }
         .scrollable-list::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
         .badge-pos { border-radius: 40px; font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.7rem; }
         .btn-action:active { transform: scale(0.96); }
-        .filter-select { transition: all 0.2s ease; }
-        .filter-select:focus { ring: 2px solid #10b981; }
+        .loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #f3f3f3; border-top: 2px solid #10b981; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .draft-notification { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
     </style>
 </head>
 <body class="antialiased">
 
-<div class="max-w-7xl mx-auto px-4 py-5 md:py-7">
-    <!-- HEADER -->
+<!-- Login Modal -->
+<div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+        <div class="text-center mb-6">
+            <div class="bg-gradient-to-br from-green-700 to-emerald-800 text-white p-4 rounded-2xl inline-block mb-4">
+                <i class="fab fa-google text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800">Google Sheets Draft Board</h2>
+            <p class="text-gray-500 text-sm mt-2">Connected to shared spreadsheet</p>
+        </div>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                <input type="text" id="username" placeholder="Enter your name" 
+                    class="w-full border rounded-xl p-3 focus:ring-2 focus:ring-emerald-300">
+            </div>
+            
+            <button id="joinDraftBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-medium transition">
+                <i class="fas fa-sign-in-alt mr-2"></i> Join Draft
+            </button>
+        </div>
+        
+        <div class="mt-6 text-xs text-gray-400 text-center">
+            <i class="fas fa-info-circle"></i> All data stored in shared Google Sheet · Updates live for everyone
+        </div>
+    </div>
+</div>
+
+<!-- Main App (hidden until login) -->
+<div id="mainApp" class="max-w-7xl mx-auto px-4 py-5 md:py-7 hidden">
+    <!-- Header -->
     <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div class="flex items-center gap-3">
             <div class="bg-gradient-to-br from-green-700 to-emerald-800 text-white p-3 rounded-2xl shadow-md">
@@ -33,10 +68,13 @@
             </div>
             <div>
                 <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-800">🌍 FIFA World Cup 2026 Draft</h1>
-                <p class="text-gray-500 text-sm">Real squads from Wikipedia · Filter by position, club, or nation</p>
+                <p class="text-gray-500 text-sm">Google Sheets Live Sync · <span id="syncStatus">Connected</span></p>
             </div>
         </div>
         <div class="flex gap-2 flex-wrap">
+            <div class="bg-white/80 backdrop-blur-sm rounded-full px-4 py-2 shadow-sm text-sm font-medium">
+                <i class="fas fa-user text-emerald-600 mr-1"></i> <span id="usernameDisplay"></span>
+            </div>
             <div class="bg-white/80 backdrop-blur-sm rounded-full px-4 py-2 shadow-sm text-sm font-medium">
                 <i class="fas fa-users text-emerald-600 mr-1"></i> <span id="draftedCount">0</span> drafted
             </div>
@@ -46,401 +84,141 @@
         </div>
     </div>
 
-    <!-- TEAM SELECTION -->
-    <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-5 mb-6">
-        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
-            <div class="flex items-center gap-2">
-                <i class="fas fa-flag-checkered text-indigo-500 text-xl"></i>
-                <h3 class="font-semibold text-gray-700">Select National Team</h3>
-                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">Wikipedia 2026 Squads</span>
+    <!-- Controls Bar -->
+    <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-4 mb-6">
+        <div class="flex flex-wrap justify-between items-center gap-3">
+            <div class="flex gap-2">
+                <button id="refreshBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm transition">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button id="randomPickBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm transition">
+                    <i class="fas fa-dice-d6"></i> Random Pick
+                </button>
+                <button id="resetDraftBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm transition">
+                    <i class="fas fa-trash-alt"></i> Reset Draft
+                </button>
             </div>
-            <button id="resetDraftBtn" class="text-sm bg-red-100 hover:bg-red-200 text-red-700 px-4 py-1.5 rounded-full transition">
-                <i class="fas fa-trash-alt mr-1"></i> Reset Draft
-            </button>
+            <div id="lastSync" class="text-xs text-gray-400">
+                <i class="fas fa-clock"></i> Auto-sync every 5 seconds
+            </div>
         </div>
-        
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            <button data-team="czech" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇨🇿 Czech Republic</button>
-            <button data-team="mexico" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇲🇽 Mexico</button>
-            <button data-team="brazil" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇧🇷 Brazil</button>
-            <button data-team="paraguay" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇵🇾 Paraguay</button>
-            <button data-team="sweden" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇸🇪 Sweden</button>
-            <button data-team="argentina" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇦🇷 Argentina</button>
-            <button data-team="uzbekistan" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇺🇿 Uzbekistan</button>
-            <button data-team="all" class="team-btn bg-indigo-600 text-white hover:bg-indigo-700 p-2 rounded-xl text-sm font-medium transition">🌍 All Teams</button>
-        </div>
-        
-        <div id="teamInfo" class="mt-3 text-xs text-gray-500 text-center"></div>
     </div>
 
-    <!-- MAIN GRID -->
+    <!-- Team Selection -->
+    <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-5 mb-6">
+        <h3 class="font-semibold text-gray-700 mb-3"><i class="fas fa-flag-checkered"></i> Filter by National Team</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
+            <button data-team="all" class="team-btn bg-indigo-600 text-white p-2 rounded-xl text-sm font-medium transition">🌍 All Teams</button>
+            <button data-team="Czech Republic" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm transition">🇨🇿 Czech Republic</button>
+            <button data-team="Mexico" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm transition">🇲🇽 Mexico</button>
+            <button data-team="Brazil" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm transition">🇧🇷 Brazil</button>
+            <button data-team="Paraguay" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm transition">🇵🇾 Paraguay</button>
+            <button data-team="Sweden" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm transition">🇸🇪 Sweden</button>
+            <button data-team="Argentina" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm transition">🇦🇷 Argentina</button>
+            <button data-team="Uzbekistan" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm transition">🇺🇿 Uzbekistan</button>
+        </div>
+    </div>
+
+    <!-- Search and Filter Bar -->
+    <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-5 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">🔍 Search Players</label>
+                <input type="text" id="searchInput" placeholder="Search by name, team, or club..." 
+                    class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-emerald-300">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">⚽ Filter by Position</label>
+                <select id="positionFilter" class="w-full px-3 py-2 border rounded-xl text-sm bg-white">
+                    <option value="all">All Positions</option>
+                    <option value="Goalkeeper">🧤 Goalkeeper</option>
+                    <option value="Defender">🛡️ Defender</option>
+                    <option value="Midfielder">🎯 Midfielder</option>
+                    <option value="Forward">⚽ Forward</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Draft Grid -->
     <div class="flex flex-col lg:flex-row gap-6">
         <!-- Available Players -->
         <div class="lg:w-1/2 bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col overflow-hidden">
-            <div class="p-5 border-b bg-gray-50">
-                <div class="flex flex-wrap justify-between gap-2 mb-2">
-                    <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-database text-emerald-600"></i> Available Players</h2>
-                    <button id="clearFiltersBtn" class="text-xs bg-gray-200 hover:bg-gray-300 px-3 py-1.5 rounded-full">
-                        <i class="fas fa-eraser"></i> Clear all filters
-                    </button>
-                </div>
-                
-                <!-- Search Bar -->
-                <div class="mb-3">
-                    <input type="text" id="searchInput" placeholder="🔍 Search by player name..." 
-                        class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-emerald-300">
-                </div>
-                
-                <!-- Filter Row - 3 Columns -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <!-- Position Filter -->
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">
-                            <i class="fas fa-futbol"></i> Position
-                        </label>
-                        <select id="positionFilter" class="filter-select w-full px-3 py-2 border rounded-xl text-sm bg-white">
-                            <option value="all">All positions</option>
-                            <option value="Goalkeeper">🧤 Goalkeeper</option>
-                            <option value="Defender">🛡️ Defender</option>
-                            <option value="Midfielder">🎯 Midfielder</option>
-                            <option value="Forward">⚽ Forward</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Nation Filter -->
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">
-                            <i class="fas fa-flag"></i> National Team
-                        </label>
-                        <select id="nationFilter" class="filter-select w-full px-3 py-2 border rounded-xl text-sm bg-white">
-                            <option value="all">All nations</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Club Filter -->
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">
-                            <i class="fas fa-building"></i> Club Team
-                        </label>
-                        <select id="clubFilter" class="filter-select w-full px-3 py-2 border rounded-xl text-sm bg-white">
-                            <option value="all">All clubs</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <!-- Active Filters Display -->
-                <div id="activeFilters" class="mt-3 flex flex-wrap gap-2 text-xs"></div>
+            <div class="p-5 border-b bg-gradient-to-r from-gray-50 to-gray-100">
+                <h2 class="text-xl font-bold text-gray-800">
+                    <i class="fas fa-database text-emerald-600"></i> Available Players
+                </h2>
+                <p class="text-xs text-gray-500 mt-1">Click the + button to draft a player</p>
             </div>
-            
-            <div id="availableContainer" class="scrollable-list p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div class="col-span-full text-center py-12 text-gray-400">
-                    <i class="fas fa-flag-checkered text-3xl mb-2 block"></i>
-                    Select a team to load players
+            <div id="availableContainer" class="scrollable-list p-4 grid grid-cols-1 gap-3">
+                <div class="text-center py-12 text-gray-400">
+                    <div class="loading-spinner mx-auto mb-2"></div>
+                    Loading players...
                 </div>
             </div>
         </div>
 
         <!-- Draft Board -->
-        <div class="lg:w-1/2 bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col">
-            <div class="p-5 border-b bg-gray-50">
-                <div class="flex flex-wrap justify-between items-center gap-3">
-                    <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-clipboard-list text-indigo-600"></i> Your Draft Board</h2>
-                    <div class="flex gap-2">
-                        <button id="undoBtn" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1.5 rounded-xl text-sm">
-                            <i class="fas fa-undo-alt"></i> Undo
-                        </button>
-                        <button id="randomPickBtn" class="bg-purple-100 hover:bg-purple-200 text-purple-800 px-3 py-1.5 rounded-xl text-sm">
-                            <i class="fas fa-dice-d6"></i> Random
-                        </button>
-                    </div>
-                </div>
-                <div class="text-xs text-gray-500 mt-2 flex gap-3">
-                    <span><i class="fas fa-list-ol"></i> Pick order = draft sequence</span>
-                    <span><i class="fas fa-arrow-left"></i> Click "Pick" to draft</span>
-                </div>
+        <div class="lg:w-1/2 bg-white rounded-2xl shadow-lg border border-gray-100 flex flex-col overflow-hidden">
+            <div class="p-5 border-b bg-gradient-to-r from-gray-50 to-gray-100">
+                <h2 class="text-xl font-bold text-gray-800">
+                    <i class="fas fa-clipboard-list text-indigo-600"></i> Draft Board
+                </h2>
+                <p class="text-xs text-gray-500 mt-1">Players drafted in order</p>
             </div>
             <div id="draftedContainer" class="scrollable-list p-4 space-y-2.5">
                 <div class="text-center py-12 text-gray-400">
-                    <i class="fas fa-trophy text-3xl mb-2 block"></i>
-                    No picks yet — start drafting
+                    No picks yet — start drafting!
                 </div>
             </div>
         </div>
     </div>
     
+    <!-- Footer -->
     <div class="mt-6 text-center text-xs text-gray-400 border-t pt-5">
-        <span>⚽ Data from Wikipedia 2026 FIFA World Cup squads · Real players, real teams</span>
+        <i class="fab fa-google"></i> Powered by Google Sheets · All data syncs live across all users
     </div>
+
+    <!-- Notifications Container -->
+    <div id="notifications" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
 </div>
 
 <script>
-    // PLAYER DATA FROM WIKIPEDIA 2026 WORLD CUP SQUADS
-    const teamData = {
-        czech: {
-            name: "Czech Republic",
-            flag: "🇨🇿",
-            players: [
-                { name: "Tomáš Souček", position: "Midfielder", club: "West Ham United" },
-                { name: "Patrik Schick", position: "Forward", club: "Bayer Leverkusen" },
-                { name: "Vladimír Coufal", position: "Defender", club: "TSG Hoffenheim" },
-                { name: "Ladislav Krejčí", position: "Defender", club: "Wolverhampton Wanderers" },
-                { name: "Adam Hložek", position: "Forward", club: "TSG Hoffenheim" },
-                { name: "Matěj Kovář", position: "Goalkeeper", club: "PSV" },
-                { name: "Jindřich Staněk", position: "Goalkeeper", club: "Slavia Prague" },
-                { name: "Tomáš Holeš", position: "Defender", club: "Slavia Prague" },
-                { name: "David Zima", position: "Defender", club: "Slavia Prague" },
-                { name: "Lukáš Provod", position: "Midfielder", club: "Slavia Prague" },
-                { name: "Michal Sadílek", position: "Midfielder", club: "Slavia Prague" },
-                { name: "Jan Kuchta", position: "Forward", club: "Sparta Prague" },
-                { name: "Vladimír Darida", position: "Midfielder", club: "Hradec Králové" },
-                { name: "Matěj Vydra", position: "Forward", club: "Viktoria Plzeň" }
-            ]
-        },
-        mexico: {
-            name: "Mexico",
-            flag: "🇲🇽",
-            players: [
-                { name: "Guillermo Ochoa", position: "Goalkeeper", club: "AEL Limassol" },
-                { name: "Edson Álvarez", position: "Midfielder", club: "Fenerbahçe" },
-                { name: "Raúl Jiménez", position: "Forward", club: "Fulham" },
-                { name: "Jesús Gallardo", position: "Defender", club: "Toluca" },
-                { name: "César Montes", position: "Defender", club: "Lokomotiv Moscow" },
-                { name: "Orbelín Pineda", position: "Midfielder", club: "AEK Athens" },
-                { name: "Santiago Giménez", position: "Forward", club: "Milan" },
-                { name: "Johan Vásquez", position: "Defender", club: "Genoa" },
-                { name: "Luis Romo", position: "Midfielder", club: "Guadalajara" },
-                { name: "Roberto Alvarado", position: "Midfielder", club: "Guadalajara" },
-                { name: "Raúl Rangel", position: "Goalkeeper", club: "Guadalajara" },
-                { name: "Jorge Sánchez", position: "Defender", club: "PAOK" },
-                { name: "Carlos Rodríguez", position: "Midfielder", club: "Cruz Azul" },
-                { name: "Alexis Vega", position: "Forward", club: "Toluca" },
-                { name: "César Huerta", position: "Forward", club: "Anderlecht" }
-            ]
-        },
-        brazil: {
-            name: "Brazil",
-            flag: "🇧🇷",
-            players: [
-                { name: "Alisson", position: "Goalkeeper", club: "Liverpool" },
-                { name: "Casemiro", position: "Midfielder", club: "Manchester United" },
-                { name: "Neymar", position: "Forward", club: "Santos" },
-                { name: "Marquinhos", position: "Defender", club: "Paris Saint-Germain" },
-                { name: "Lucas Paquetá", position: "Midfielder", club: "Flamengo" },
-                { name: "Vinícius Júnior", position: "Forward", club: "Real Madrid" },
-                { name: "Thiago Silva", position: "Defender", club: "Porto" },
-                { name: "Gabriel Jesus", position: "Forward", club: "Arsenal" },
-                { name: "Bruno Guimarães", position: "Midfielder", club: "Newcastle United" },
-                { name: "Richarlison", position: "Forward", club: "Tottenham Hotspur" },
-                { name: "Ederson", position: "Goalkeeper", club: "Fenerbahçe" },
-                { name: "Danilo", position: "Defender", club: "Flamengo" },
-                { name: "Raphinha", position: "Forward", club: "Barcelona" },
-                { name: "Gabriel Martinelli", position: "Forward", club: "Arsenal" },
-                { name: "Éder Militão", position: "Defender", club: "Real Madrid" }
-            ]
-        },
-        paraguay: {
-            name: "Paraguay",
-            flag: "🇵🇾",
-            players: [
-                { name: "Gustavo Gómez", position: "Defender", club: "Palmeiras" },
-                { name: "Miguel Almirón", position: "Midfielder", club: "Atlanta United" },
-                { name: "Júnior Alonso", position: "Defender", club: "Atlético Mineiro" },
-                { name: "Antonio Sanabria", position: "Forward", club: "Cremonese" },
-                { name: "Mathías Villasanti", position: "Midfielder", club: "Grêmio" },
-                { name: "Ángel Romero", position: "Forward", club: "Boca Juniors" },
-                { name: "Óscar Romero", position: "Forward", club: "Huracán" },
-                { name: "Julio Enciso", position: "Forward", club: "Strasbourg" },
-                { name: "Fabián Balbuena", position: "Defender", club: "Grêmio" },
-                { name: "Omar Alderete", position: "Defender", club: "Sunderland" },
-                { name: "Gatito Fernández", position: "Goalkeeper", club: "Cerro Porteño" },
-                { name: "Carlos Coronel", position: "Goalkeeper", club: "São Paulo" }
-            ]
-        },
-        sweden: {
-            name: "Sweden",
-            flag: "🇸🇪",
-            players: [
-                { name: "Victor Lindelöf", position: "Defender", club: "Aston Villa" },
-                { name: "Alexander Isak", position: "Forward", club: "Liverpool" },
-                { name: "Viktor Gyökeres", position: "Forward", club: "Arsenal" },
-                { name: "Isak Hien", position: "Defender", club: "Atalanta" },
-                { name: "Mattias Svanberg", position: "Midfielder", club: "VfL Wolfsburg" },
-                { name: "Anthony Elanga", position: "Forward", club: "Newcastle United" },
-                { name: "Yasin Ayari", position: "Midfielder", club: "Brighton" },
-                { name: "Kristoffer Nordfeldt", position: "Goalkeeper", club: "AIK" },
-                { name: "Lucas Bergvall", position: "Midfielder", club: "Tottenham Hotspur" },
-                { name: "Emil Holm", position: "Defender", club: "Juventus" },
-                { name: "Jesper Karlström", position: "Midfielder", club: "Udinese" },
-                { name: "Ken Sema", position: "Forward", club: "Pafos" }
-            ]
-        },
-        argentina: {
-            name: "Argentina",
-            flag: "🇦🇷",
-            players: [
-                { name: "Lionel Messi", position: "Forward", club: "Inter Miami" },
-                { name: "Emiliano Martínez", position: "Goalkeeper", club: "Aston Villa" },
-                { name: "Nicolás Otamendi", position: "Defender", club: "Benfica" },
-                { name: "Rodrigo De Paul", position: "Midfielder", club: "Inter Miami" },
-                { name: "Lautaro Martínez", position: "Forward", club: "Inter Milan" },
-                { name: "Julián Alvarez", position: "Forward", club: "Atlético Madrid" },
-                { name: "Leandro Paredes", position: "Midfielder", club: "Boca Juniors" },
-                { name: "Alexis Mac Allister", position: "Midfielder", club: "Liverpool" },
-                { name: "Cristian Romero", position: "Defender", club: "Tottenham Hotspur" },
-                { name: "Nicolás Tagliafico", position: "Defender", club: "Lyon" },
-                { name: "Enzo Fernández", position: "Midfielder", club: "Chelsea" },
-                { name: "Nahuel Molina", position: "Defender", club: "Atlético Madrid" },
-                { name: "Giovani Lo Celso", position: "Midfielder", club: "Betis" },
-                { name: "Alejandro Garnacho", position: "Forward", club: "Chelsea" }
-            ]
-        },
-        uzbekistan: {
-            name: "Uzbekistan",
-            flag: "🇺🇿",
-            players: [
-                { name: "Eldor Shomurodov", position: "Forward", club: "İstanbul Başakşehir" },
-                { name: "Otabek Shukurov", position: "Midfielder", club: "Baniyas" },
-                { name: "Jaloliddin Masharipov", position: "Midfielder", club: "Esteghlal" },
-                { name: "Abbosbek Fayzullaev", position: "Midfielder", club: "İstanbul Başakşehir" },
-                { name: "Rustam Ashurmatov", position: "Defender", club: "Esteghlal" },
-                { name: "Utkir Yusupov", position: "Goalkeeper", club: "Navbahor" },
-                { name: "Abdukodir Khusanov", position: "Defender", club: "Manchester City" },
-                { name: "Oston Urunov", position: "Midfielder", club: "Persepolis" },
-                { name: "Igor Sergeev", position: "Forward", club: "Persepolis" },
-                { name: "Farrukh Sayfiev", position: "Defender", club: "Neftchi" },
-                { name: "Khojiakbar Alijonov", position: "Defender", club: "Pakhtakor" }
-            ]
-        }
-    };
-
+    // CONFIGURATION - Your Google Apps Script URL
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzHqTzV6D1xVIIL6EpUHvgQnw0w0HLIafiR5i-TNUmXg8HX-v8sJiuK8xgPZm2nafkP/exec';
+    
     // Global state
+    let USERNAME = '';
     let allPlayers = [];
     let draftedIds = [];
-    let historyStack = [];
-    let searchTerm = "";
-    let positionTerm = "all";
-    let nationTerm = "all";
-    let clubTerm = "all";
-    let currentTeam = "all";
+    let draftHistory = [];
+    let currentTeam = 'all';
+    let searchTerm = '';
+    let positionTerm = 'all';
+    let refreshInterval = null;
+    let isRefreshing = false;
 
-    // Build master player list
-    function buildPlayerList(teamKey = "all") {
-        const players = [];
+    // Helper Functions
+    function showNotification(message, type = 'info') {
+        const colors = {
+            success: 'bg-green-500',
+            error: 'bg-red-500',
+            info: 'bg-blue-500',
+            warning: 'bg-yellow-500'
+        };
         
-        if (teamKey === "all") {
-            for (const [key, team] of Object.entries(teamData)) {
-                team.players.forEach((player, idx) => {
-                    players.push({
-                        id: `${key}_${player.name.replace(/\s/g, '')}_${idx}`,
-                        name: player.name,
-                        position: player.position,
-                        club: player.club,
-                        team: team.name,
-                        teamFlag: team.flag,
-                        teamKey: key
-                    });
-                });
-            }
-        } else if (teamData[teamKey]) {
-            const team = teamData[teamKey];
-            team.players.forEach((player, idx) => {
-                players.push({
-                    id: `${teamKey}_${player.name.replace(/\s/g, '')}_${idx}`,
-                    name: player.name,
-                    position: player.position,
-                    club: player.club,
-                    team: team.name,
-                    teamFlag: team.flag,
-                    teamKey: teamKey
-                });
-            });
-        }
+        const notification = document.createElement('div');
+        notification.className = `${colors[type]} text-white px-4 py-2 rounded-lg shadow-lg draft-notification text-sm`;
+        notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'} mr-2"></i>${message}`;
         
-        return players;
-    }
-
-    // Update filter dropdowns based on current players
-    function updateFilterOptions() {
-        // Get unique nations
-        const nations = [...new Set(allPlayers.map(p => p.team))].sort();
-        const nationSelect = document.getElementById("nationFilter");
-        const currentNation = nationSelect.value;
-        nationSelect.innerHTML = '<option value="all">🌍 All nations</option>';
-        nations.forEach(nation => {
-            nationSelect.innerHTML += `<option value="${nation}">${nation}</option>`;
-        });
-        if (currentNation !== "all" && nations.includes(currentNation)) {
-            nationSelect.value = currentNation;
-        } else if (currentNation !== "all") {
-            nationTerm = "all";
-        }
+        const container = document.getElementById('notifications');
+        container.appendChild(notification);
         
-        // Get unique clubs
-        const clubs = [...new Set(allPlayers.map(p => p.club))].sort();
-        const clubSelect = document.getElementById("clubFilter");
-        const currentClub = clubSelect.value;
-        clubSelect.innerHTML = '<option value="all">🏆 All clubs</option>';
-        clubs.forEach(club => {
-            clubSelect.innerHTML += `<option value="${club}">${club}</option>`;
-        });
-        if (currentClub !== "all" && clubs.includes(currentClub)) {
-            clubSelect.value = currentClub;
-        } else if (currentClub !== "all") {
-            clubTerm = "all";
-        }
-    }
-
-    // Update active filters display
-    function updateActiveFilters() {
-        const activeFiltersDiv = document.getElementById("activeFilters");
-        const filters = [];
-        
-        if (searchTerm) {
-            filters.push(`<span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full"><i class="fas fa-search"></i> "${searchTerm}"</span>`);
-        }
-        if (positionTerm !== "all") {
-            filters.push(`<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full"><i class="fas fa-futbol"></i> ${positionTerm}</span>`);
-        }
-        if (nationTerm !== "all") {
-            filters.push(`<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full"><i class="fas fa-flag"></i> ${nationTerm}</span>`);
-        }
-        if (clubTerm !== "all") {
-            filters.push(`<span class="bg-purple-100 text-purple-700 px-2 py-1 rounded-full"><i class="fas fa-building"></i> ${clubTerm}</span>`);
-        }
-        
-        if (filters.length > 0) {
-            activeFiltersDiv.innerHTML = `<span class="text-gray-500 text-xs mr-1">Active filters:</span> ${filters.join(' ')}`;
-        } else {
-            activeFiltersDiv.innerHTML = '';
-        }
-    }
-
-    // Load team
-    function loadTeam(teamKey) {
-        currentTeam = teamKey;
-        allPlayers = buildPlayerList(teamKey);
-        draftedIds = [];
-        historyStack = [];
-        searchTerm = "";
-        positionTerm = "all";
-        nationTerm = "all";
-        clubTerm = "all";
-        
-        // Reset filter inputs
-        document.getElementById("searchInput").value = "";
-        document.getElementById("positionFilter").value = "all";
-        
-        updateFilterOptions();
-        updateActiveFilters();
-        
-        const teamInfo = document.getElementById("teamInfo");
-        if (teamKey === "all") {
-            teamInfo.innerHTML = "🌍 Showing all teams · " + allPlayers.length + " players available";
-        } else if (teamData[teamKey]) {
-            teamInfo.innerHTML = `${teamData[teamKey].flag} ${teamData[teamKey].name} · ${allPlayers.length} players in squad`;
-        }
-        
-        refreshUI();
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.3s';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
     }
 
     function getPosColor(pos) {
@@ -463,63 +241,118 @@
         });
     }
 
-    function draftPlayer(playerId) {
-        if (draftedIds.includes(playerId)) return;
+    // Fetch data from Google Sheets
+    async function fetchData() {
+        if (isRefreshing) return;
+        isRefreshing = true;
         
-        historyStack.push([...draftedIds]);
-        if (historyStack.length > 30) historyStack.shift();
-        draftedIds.push(playerId);
-        refreshUI();
+        try {
+            const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+            const data = await response.json();
+            
+            allPlayers = data.players || [];
+            draftedIds = data.draftedIds || [];
+            draftHistory = data.draftHistory || [];
+            
+            document.getElementById('syncStatus').innerHTML = '<i class="fas fa-check-circle text-green-600"></i> Live';
+            document.getElementById('lastSync').innerHTML = `<i class="fas fa-clock"></i> Last sync: ${new Date().toLocaleTimeString()}`;
+            
+            refreshUI();
+            return true;
+        } catch (error) {
+            console.error('Fetch error:', error);
+            document.getElementById('syncStatus').innerHTML = '<i class="fas fa-exclamation-triangle text-red-600"></i> Sync error';
+            return false;
+        } finally {
+            isRefreshing = false;
+        }
     }
 
-    function removeDraft(playerId) {
-        if (!draftedIds.includes(playerId)) return;
+    // Draft a player
+    async function draftPlayer(playerId, playerName) {
+        try {
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'draft',
+                    playerId: playerId,
+                    username: USERNAME
+                })
+            });
+            
+            showNotification(`${USERNAME} drafted ${playerName}!`, 'success');
+            
+            // Wait a moment then refresh
+            setTimeout(() => fetchData(), 1000);
+        } catch (error) {
+            console.error('Draft error:', error);
+            showNotification('Error drafting player. Please try again.', 'error');
+        }
+    }
+
+    // Reset draft (admin function)
+    async function resetDraft() {
+        if (!confirm('⚠️ WARNING: This will reset the ENTIRE DRAFT for EVERYONE! Are you absolutely sure?')) {
+            return;
+        }
         
-        historyStack.push([...draftedIds]);
-        if (historyStack.length > 30) historyStack.shift();
-        draftedIds = draftedIds.filter(id => id !== playerId);
-        refreshUI();
+        if (!confirm('LAST CHANCE: Type "RESET" to confirm')) {
+            const check = prompt('Type "RESET" to confirm:');
+            if (check !== 'RESET') return;
+        }
+        
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'reset' })
+            });
+            
+            showNotification('Draft has been reset by ' + USERNAME + '!', 'warning');
+            setTimeout(() => fetchData(), 1000);
+        } catch (error) {
+            console.error('Reset error:', error);
+            showNotification('Error resetting draft', 'error');
+        }
     }
 
-    function undo() {
-        if (historyStack.length === 0) return;
-        const previous = historyStack.pop();
-        draftedIds = [...previous];
-        refreshUI();
-    }
-
-    function resetDraft() {
-        if (draftedIds.length === 0) return;
-        historyStack.push([...draftedIds]);
-        draftedIds = [];
-        refreshUI();
-    }
-
-    function randomPick() {
+    // Random pick
+    async function randomPick() {
         const available = allPlayers.filter(p => !draftedIds.includes(p.id));
-        if (available.length === 0) return;
-        const randomIndex = Math.floor(Math.random() * available.length);
-        draftPlayer(available[randomIndex].id);
+        if (available.length === 0) {
+            showNotification('No players available to draft!', 'error');
+            return;
+        }
+        
+        const random = available[Math.floor(Math.random() * available.length)];
+        await draftPlayer(random.id, random.name);
     }
 
+    // Refresh UI with current filters
     function refreshUI() {
         // Filter available players
         let available = allPlayers.filter(p => !draftedIds.includes(p.id));
+        
+        if (currentTeam !== 'all') {
+            available = available.filter(p => p.team === currentTeam);
+        }
+        
         available = available.filter(p => {
             const matchSearch = searchTerm === "" || 
                 p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                 p.team.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 p.club.toLowerCase().includes(searchTerm.toLowerCase());
             const matchPos = positionTerm === "all" || p.position === positionTerm;
-            const matchNation = nationTerm === "all" || p.team === nationTerm;
-            const matchClub = clubTerm === "all" || p.club === clubTerm;
-            return matchSearch && matchPos && matchNation && matchClub;
+            return matchSearch && matchPos;
         });
-
+        
         // Render available players
         const availableContainer = document.getElementById("availableContainer");
         if (available.length === 0) {
-            availableContainer.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">
+            availableContainer.innerHTML = `<div class="text-center py-12 text-gray-400">
                 <i class="fas fa-user-slash text-3xl mb-2 block"></i>
                 No players match your filters
             </div>`;
@@ -532,103 +365,128 @@
                             <span class="badge-pos ${getPosColor(player.position)}">${player.position}</span>
                         </div>
                         <div class="text-xs text-gray-500 mt-1">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="inline-flex items-center gap-1">${player.teamFlag} ${escapeHtml(player.team)}</span>
-                                <span class="inline-flex items-center gap-1"><i class="fas fa-building"></i> ${escapeHtml(player.club)}</span>
-                            </div>
+                            <span class="inline-flex items-center gap-1">${player.teamFlag} ${escapeHtml(player.team)}</span>
+                            <span class="inline-flex items-center gap-1 ml-2"><i class="fas fa-building"></i> ${escapeHtml(player.club)}</span>
                         </div>
                     </div>
-                    <button onclick="draftPlayer('${player.id}')" class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm btn-action ml-2">
+                    <button onclick="draftPlayer('${player.id}', '${escapeHtml(player.name)}')" 
+                            class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm btn-action ml-2">
                         <i class="fas fa-plus text-xs"></i>
                     </button>
                 </div>
             `).join('');
         }
-
+        
         // Render drafted players
         const draftedContainer = document.getElementById("draftedContainer");
-        const draftedPlayers = draftedIds.map(id => allPlayers.find(p => p.id === id)).filter(p => p);
+        const draftedPlayers = draftHistory.map(row => {
+            const player = allPlayers.find(p => p.id === row[1]);
+            if (!player) return null;
+            return {
+                ...player,
+                draftedBy: row[4],
+                pickNumber: row[0],
+                timestamp: row[5]
+            };
+        }).filter(p => p);
         
         if (draftedPlayers.length === 0) {
             draftedContainer.innerHTML = `<div class="text-center py-12 text-gray-400">
-                <i class="fas fa-clipboard-list text-3xl mb-2 block"></i>
-                Draft board empty — select your stars
+                <i class="fas fa-trophy text-3xl mb-2 block"></i>
+                No picks yet — start drafting!
             </div>`;
         } else {
-            draftedContainer.innerHTML = draftedPlayers.map((player, idx) => `
-                <div class="bg-indigo-50/40 border border-indigo-100 rounded-xl p-3 flex justify-between items-center shadow-sm">
+            draftedContainer.innerHTML = draftedPlayers.map(player => `
+                <div class="bg-indigo-50/40 border border-indigo-100 rounded-xl p-3 card-hover">
                     <div class="flex items-center gap-3">
-                        <span class="bg-indigo-200 text-indigo-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">${idx+1}</span>
-                        <div>
+                        <span class="bg-indigo-200 text-indigo-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">${player.pickNumber}</span>
+                        <div class="flex-1">
                             <div class="font-semibold text-gray-800">${escapeHtml(player.name)}</div>
-                            <div class="text-xs text-gray-500">${player.position} · ${player.teamFlag} ${escapeHtml(player.team)} · ${escapeHtml(player.club)}</div>
+                            <div class="text-xs text-gray-500">${player.position} · ${player.teamFlag} ${escapeHtml(player.team)}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs font-medium text-indigo-600">
+                                <i class="fas fa-user"></i> ${escapeHtml(player.draftedBy)}
+                            </div>
+                            <div class="text-xs text-gray-400">
+                                ${new Date(player.timestamp).toLocaleTimeString()}
+                            </div>
                         </div>
                     </div>
-                    <button onclick="removeDraft('${player.id}')" class="text-red-500 hover:text-red-700 bg-white rounded-full w-7 h-7 flex items-center justify-center shadow-sm transition">
-                        <i class="fas fa-trash-can text-xs"></i>
-                    </button>
                 </div>
             `).join('');
         }
-
+        
         document.getElementById("draftedCount").innerText = draftedIds.length;
         document.getElementById("availableCount").innerText = allPlayers.length - draftedIds.length;
     }
 
-    // Event listeners
+    // Event Listeners
+    document.getElementById('joinDraftBtn').addEventListener('click', () => {
+        const username = document.getElementById('username').value.trim();
+        
+        if (!username) {
+            alert('Please enter your name');
+            return;
+        }
+        
+        USERNAME = username;
+        document.getElementById('usernameDisplay').innerHTML = `<i class="fas fa-user"></i> ${escapeHtml(USERNAME)}`;
+        document.getElementById('loginModal').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        
+        // Initial data load
+        fetchData();
+        
+        // Auto-refresh every 5 seconds
+        refreshInterval = setInterval(fetchData, 5000);
+        
+        showNotification(`Welcome ${USERNAME}! You've joined the draft.`, 'success');
+    });
+    
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+        fetchData();
+        showNotification('Manual refresh triggered', 'info');
+    });
+    
+    document.getElementById('randomPickBtn').addEventListener('click', randomPick);
+    document.getElementById('resetDraftBtn').addEventListener('click', resetDraft);
+    
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        searchTerm = e.target.value;
+        refreshUI();
+    });
+    
+    document.getElementById('positionFilter').addEventListener('change', (e) => {
+        positionTerm = e.target.value;
+        refreshUI();
+    });
+    
+    // Team filter buttons
     document.querySelectorAll('.team-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const team = btn.getAttribute('data-team');
-            loadTeam(team);
+            // Update active state
+            document.querySelectorAll('.team-btn').forEach(b => {
+                b.classList.remove('bg-indigo-600', 'text-white');
+                b.classList.add('bg-gray-100', 'hover:bg-indigo-100');
+            });
+            btn.classList.add('bg-indigo-600', 'text-white');
+            btn.classList.remove('bg-gray-100', 'hover:bg-indigo-100');
+            
+            currentTeam = btn.getAttribute('data-team');
+            refreshUI();
         });
     });
-
-    document.getElementById("undoBtn").addEventListener("click", undo);
-    document.getElementById("resetDraftBtn").addEventListener("click", resetDraft);
-    document.getElementById("randomPickBtn").addEventListener("click", randomPick);
-    document.getElementById("clearFiltersBtn").addEventListener("click", () => {
-        searchTerm = "";
-        positionTerm = "all";
-        nationTerm = "all";
-        clubTerm = "all";
-        document.getElementById("searchInput").value = "";
-        document.getElementById("positionFilter").value = "all";
-        document.getElementById("nationFilter").value = "all";
-        document.getElementById("clubFilter").value = "all";
-        updateActiveFilters();
-        refreshUI();
-    });
     
-    document.getElementById("searchInput").addEventListener("input", (e) => {
-        searchTerm = e.target.value;
-        updateActiveFilters();
-        refreshUI();
-    });
-    
-    document.getElementById("positionFilter").addEventListener("change", (e) => {
-        positionTerm = e.target.value;
-        updateActiveFilters();
-        refreshUI();
-    });
-    
-    document.getElementById("nationFilter").addEventListener("change", (e) => {
-        nationTerm = e.target.value;
-        updateActiveFilters();
-        refreshUI();
-    });
-    
-    document.getElementById("clubFilter").addEventListener("change", (e) => {
-        clubTerm = e.target.value;
-        updateActiveFilters();
-        refreshUI();
-    });
-
     // Make functions global for onclick handlers
     window.draftPlayer = draftPlayer;
-    window.removeDraft = removeDraft;
     
-    // Load all teams by default
-    loadTeam("all");
+    // Clean up on page unload
+    window.addEventListener('beforeunload', () => {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+        }
+    });
 </script>
 </body>
 </html>
