@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>⚽ FIFA World Cup Draft Board | 2018-2026</title>
-    <!-- Tailwind + Font Awesome + Google Fonts -->
+    <title>⚽ FIFA World Cup 2026 Draft Board | Real Squads</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
@@ -19,8 +18,8 @@
         .scrollable-list::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
         .badge-pos { border-radius: 40px; font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.7rem; }
         .btn-action:active { transform: scale(0.96); }
-        .loading-spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .filter-select { transition: all 0.2s ease; }
+        .filter-select:focus { ring: 2px solid #10b981; }
     </style>
 </head>
 <body class="antialiased">
@@ -30,11 +29,11 @@
     <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div class="flex items-center gap-3">
             <div class="bg-gradient-to-br from-green-700 to-emerald-800 text-white p-3 rounded-2xl shadow-md">
-                <i class="fas fa-futbol text-2xl"></i>
+                <i class="fas fa-trophy text-2xl"></i>
             </div>
             <div>
-                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-800">🌍 FIFA World Cup Draft</h1>
-                <p class="text-gray-500 text-sm">Real players from 2018, 2022, 2026 · Build your ultimate squad</p>
+                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-800">🌍 FIFA World Cup 2026 Draft</h1>
+                <p class="text-gray-500 text-sm">Real squads from Wikipedia · Filter by position, club, or nation</p>
             </div>
         </div>
         <div class="flex gap-2 flex-wrap">
@@ -47,62 +46,31 @@
         </div>
     </div>
 
-    <!-- API CONTROL PANEL -->
+    <!-- TEAM SELECTION -->
     <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-5 mb-6">
         <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
             <div class="flex items-center gap-2">
-                <i class="fas fa-key text-indigo-500 text-xl"></i>
-                <h3 class="font-semibold text-gray-700">FIFA World Cup API</h3>
-                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">Live Data</span>
+                <i class="fas fa-flag-checkered text-indigo-500 text-xl"></i>
+                <h3 class="font-semibold text-gray-700">Select National Team</h3>
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">Wikipedia 2026 Squads</span>
             </div>
             <button id="resetDraftBtn" class="text-sm bg-red-100 hover:bg-red-200 text-red-700 px-4 py-1.5 rounded-full transition">
                 <i class="fas fa-trash-alt mr-1"></i> Reset Draft
             </button>
         </div>
         
-        <!-- API Key Input (stored in localStorage) -->
-        <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-600 mb-1">
-                <i class="fas fa-key"></i> FIFA API Key 
-                <span class="text-xs text-gray-400">(Get free from balldontlie.io)</span>
-            </label>
-            <div class="flex gap-2">
-                <input type="password" id="apiKeyInput" placeholder="Enter your API key" 
-                    class="flex-1 border border-gray-300 rounded-xl p-2 text-sm focus:ring-2 focus:ring-indigo-300">
-                <button id="saveApiKeyBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm">
-                    Save
-                </button>
-            </div>
-            <div id="apiKeyStatus" class="text-xs mt-1 hidden"></div>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <button data-team="czech" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇨🇿 Czech Republic</button>
+            <button data-team="mexico" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇲🇽 Mexico</button>
+            <button data-team="brazil" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇧🇷 Brazil</button>
+            <button data-team="paraguay" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇵🇾 Paraguay</button>
+            <button data-team="sweden" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇸🇪 Sweden</button>
+            <button data-team="argentina" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇦🇷 Argentina</button>
+            <button data-team="uzbekistan" class="team-btn bg-gray-100 hover:bg-indigo-100 p-2 rounded-xl text-sm font-medium transition">🇺🇿 Uzbekistan</button>
+            <button data-team="all" class="team-btn bg-indigo-600 text-white hover:bg-indigo-700 p-2 rounded-xl text-sm font-medium transition">🌍 All Teams</button>
         </div>
-
-        <!-- Tournament Selection -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Tournament Year</label>
-                <select id="seasonSelect" class="w-full border rounded-xl p-2 text-sm bg-white">
-                    <option value="2026">2026 World Cup (USA/Mexico/Canada)</option>
-                    <option value="2022">2022 World Cup (Qatar)</option>
-                    <option value="2018">2018 World Cup (Russia)</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Filter by Team (Optional)</label>
-                <select id="teamFilter" class="w-full border rounded-xl p-2 text-sm bg-white">
-                    <option value="">All Teams</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Load Button -->
-        <div class="mt-4">
-            <button id="loadPlayersBtn" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-xl transition font-medium">
-                <i class="fas fa-download mr-2"></i> Load Players from FIFA World Cup
-            </button>
-        </div>
-
-        <!-- Status Message -->
-        <div id="statusMessage" class="mt-3 text-xs text-center hidden"></div>
+        
+        <div id="teamInfo" class="mt-3 text-xs text-gray-500 text-center"></div>
     </div>
 
     <!-- MAIN GRID -->
@@ -113,25 +81,61 @@
                 <div class="flex flex-wrap justify-between gap-2 mb-2">
                     <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-database text-emerald-600"></i> Available Players</h2>
                     <button id="clearFiltersBtn" class="text-xs bg-gray-200 hover:bg-gray-300 px-3 py-1.5 rounded-full">
-                        <i class="fas fa-eraser"></i> Clear filters
+                        <i class="fas fa-eraser"></i> Clear all filters
                     </button>
                 </div>
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <input type="text" id="searchInput" placeholder="Search name, team, position..." 
-                        class="flex-1 px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-emerald-300">
-                    <select id="positionFilter" class="px-4 py-2 border rounded-xl text-sm bg-white">
-                        <option value="all">All positions</option>
-                        <option value="Forward">⚽ Forward</option>
-                        <option value="Midfielder">🎯 Midfielder</option>
-                        <option value="Defender">🛡️ Defender</option>
-                        <option value="Goalkeeper">🧤 Goalkeeper</option>
-                    </select>
+                
+                <!-- Search Bar -->
+                <div class="mb-3">
+                    <input type="text" id="searchInput" placeholder="🔍 Search by player name..." 
+                        class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-emerald-300">
                 </div>
+                
+                <!-- Filter Row - 3 Columns -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <!-- Position Filter -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">
+                            <i class="fas fa-futbol"></i> Position
+                        </label>
+                        <select id="positionFilter" class="filter-select w-full px-3 py-2 border rounded-xl text-sm bg-white">
+                            <option value="all">All positions</option>
+                            <option value="Goalkeeper">🧤 Goalkeeper</option>
+                            <option value="Defender">🛡️ Defender</option>
+                            <option value="Midfielder">🎯 Midfielder</option>
+                            <option value="Forward">⚽ Forward</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Nation Filter -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">
+                            <i class="fas fa-flag"></i> National Team
+                        </label>
+                        <select id="nationFilter" class="filter-select w-full px-3 py-2 border rounded-xl text-sm bg-white">
+                            <option value="all">All nations</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Club Filter -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">
+                            <i class="fas fa-building"></i> Club Team
+                        </label>
+                        <select id="clubFilter" class="filter-select w-full px-3 py-2 border rounded-xl text-sm bg-white">
+                            <option value="all">All clubs</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Active Filters Display -->
+                <div id="activeFilters" class="mt-3 flex flex-wrap gap-2 text-xs"></div>
             </div>
+            
             <div id="availableContainer" class="scrollable-list p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div class="col-span-full text-center py-12 text-gray-400">
-                    <i class="fas fa-cloud-download-alt text-3xl mb-2 block"></i>
-                    Enter API key and load players
+                    <i class="fas fa-flag-checkered text-3xl mb-2 block"></i>
+                    Select a team to load players
                 </div>
             </div>
         </div>
@@ -165,209 +169,300 @@
     </div>
     
     <div class="mt-6 text-center text-xs text-gray-400 border-t pt-5">
-        <span id="sourceInfo">⚽ Data from FIFA World Cup API · Free tier: 5 requests/min</span>
+        <span>⚽ Data from Wikipedia 2026 FIFA World Cup squads · Real players, real teams</span>
     </div>
 </div>
 
 <script>
+    // PLAYER DATA FROM WIKIPEDIA 2026 WORLD CUP SQUADS
+    const teamData = {
+        czech: {
+            name: "Czech Republic",
+            flag: "🇨🇿",
+            players: [
+                { name: "Tomáš Souček", position: "Midfielder", club: "West Ham United" },
+                { name: "Patrik Schick", position: "Forward", club: "Bayer Leverkusen" },
+                { name: "Vladimír Coufal", position: "Defender", club: "TSG Hoffenheim" },
+                { name: "Ladislav Krejčí", position: "Defender", club: "Wolverhampton Wanderers" },
+                { name: "Adam Hložek", position: "Forward", club: "TSG Hoffenheim" },
+                { name: "Matěj Kovář", position: "Goalkeeper", club: "PSV" },
+                { name: "Jindřich Staněk", position: "Goalkeeper", club: "Slavia Prague" },
+                { name: "Tomáš Holeš", position: "Defender", club: "Slavia Prague" },
+                { name: "David Zima", position: "Defender", club: "Slavia Prague" },
+                { name: "Lukáš Provod", position: "Midfielder", club: "Slavia Prague" },
+                { name: "Michal Sadílek", position: "Midfielder", club: "Slavia Prague" },
+                { name: "Jan Kuchta", position: "Forward", club: "Sparta Prague" },
+                { name: "Vladimír Darida", position: "Midfielder", club: "Hradec Králové" },
+                { name: "Matěj Vydra", position: "Forward", club: "Viktoria Plzeň" }
+            ]
+        },
+        mexico: {
+            name: "Mexico",
+            flag: "🇲🇽",
+            players: [
+                { name: "Guillermo Ochoa", position: "Goalkeeper", club: "AEL Limassol" },
+                { name: "Edson Álvarez", position: "Midfielder", club: "Fenerbahçe" },
+                { name: "Raúl Jiménez", position: "Forward", club: "Fulham" },
+                { name: "Jesús Gallardo", position: "Defender", club: "Toluca" },
+                { name: "César Montes", position: "Defender", club: "Lokomotiv Moscow" },
+                { name: "Orbelín Pineda", position: "Midfielder", club: "AEK Athens" },
+                { name: "Santiago Giménez", position: "Forward", club: "Milan" },
+                { name: "Johan Vásquez", position: "Defender", club: "Genoa" },
+                { name: "Luis Romo", position: "Midfielder", club: "Guadalajara" },
+                { name: "Roberto Alvarado", position: "Midfielder", club: "Guadalajara" },
+                { name: "Raúl Rangel", position: "Goalkeeper", club: "Guadalajara" },
+                { name: "Jorge Sánchez", position: "Defender", club: "PAOK" },
+                { name: "Carlos Rodríguez", position: "Midfielder", club: "Cruz Azul" },
+                { name: "Alexis Vega", position: "Forward", club: "Toluca" },
+                { name: "César Huerta", position: "Forward", club: "Anderlecht" }
+            ]
+        },
+        brazil: {
+            name: "Brazil",
+            flag: "🇧🇷",
+            players: [
+                { name: "Alisson", position: "Goalkeeper", club: "Liverpool" },
+                { name: "Casemiro", position: "Midfielder", club: "Manchester United" },
+                { name: "Neymar", position: "Forward", club: "Santos" },
+                { name: "Marquinhos", position: "Defender", club: "Paris Saint-Germain" },
+                { name: "Lucas Paquetá", position: "Midfielder", club: "Flamengo" },
+                { name: "Vinícius Júnior", position: "Forward", club: "Real Madrid" },
+                { name: "Thiago Silva", position: "Defender", club: "Porto" },
+                { name: "Gabriel Jesus", position: "Forward", club: "Arsenal" },
+                { name: "Bruno Guimarães", position: "Midfielder", club: "Newcastle United" },
+                { name: "Richarlison", position: "Forward", club: "Tottenham Hotspur" },
+                { name: "Ederson", position: "Goalkeeper", club: "Fenerbahçe" },
+                { name: "Danilo", position: "Defender", club: "Flamengo" },
+                { name: "Raphinha", position: "Forward", club: "Barcelona" },
+                { name: "Gabriel Martinelli", position: "Forward", club: "Arsenal" },
+                { name: "Éder Militão", position: "Defender", club: "Real Madrid" }
+            ]
+        },
+        paraguay: {
+            name: "Paraguay",
+            flag: "🇵🇾",
+            players: [
+                { name: "Gustavo Gómez", position: "Defender", club: "Palmeiras" },
+                { name: "Miguel Almirón", position: "Midfielder", club: "Atlanta United" },
+                { name: "Júnior Alonso", position: "Defender", club: "Atlético Mineiro" },
+                { name: "Antonio Sanabria", position: "Forward", club: "Cremonese" },
+                { name: "Mathías Villasanti", position: "Midfielder", club: "Grêmio" },
+                { name: "Ángel Romero", position: "Forward", club: "Boca Juniors" },
+                { name: "Óscar Romero", position: "Forward", club: "Huracán" },
+                { name: "Julio Enciso", position: "Forward", club: "Strasbourg" },
+                { name: "Fabián Balbuena", position: "Defender", club: "Grêmio" },
+                { name: "Omar Alderete", position: "Defender", club: "Sunderland" },
+                { name: "Gatito Fernández", position: "Goalkeeper", club: "Cerro Porteño" },
+                { name: "Carlos Coronel", position: "Goalkeeper", club: "São Paulo" }
+            ]
+        },
+        sweden: {
+            name: "Sweden",
+            flag: "🇸🇪",
+            players: [
+                { name: "Victor Lindelöf", position: "Defender", club: "Aston Villa" },
+                { name: "Alexander Isak", position: "Forward", club: "Liverpool" },
+                { name: "Viktor Gyökeres", position: "Forward", club: "Arsenal" },
+                { name: "Isak Hien", position: "Defender", club: "Atalanta" },
+                { name: "Mattias Svanberg", position: "Midfielder", club: "VfL Wolfsburg" },
+                { name: "Anthony Elanga", position: "Forward", club: "Newcastle United" },
+                { name: "Yasin Ayari", position: "Midfielder", club: "Brighton" },
+                { name: "Kristoffer Nordfeldt", position: "Goalkeeper", club: "AIK" },
+                { name: "Lucas Bergvall", position: "Midfielder", club: "Tottenham Hotspur" },
+                { name: "Emil Holm", position: "Defender", club: "Juventus" },
+                { name: "Jesper Karlström", position: "Midfielder", club: "Udinese" },
+                { name: "Ken Sema", position: "Forward", club: "Pafos" }
+            ]
+        },
+        argentina: {
+            name: "Argentina",
+            flag: "🇦🇷",
+            players: [
+                { name: "Lionel Messi", position: "Forward", club: "Inter Miami" },
+                { name: "Emiliano Martínez", position: "Goalkeeper", club: "Aston Villa" },
+                { name: "Nicolás Otamendi", position: "Defender", club: "Benfica" },
+                { name: "Rodrigo De Paul", position: "Midfielder", club: "Inter Miami" },
+                { name: "Lautaro Martínez", position: "Forward", club: "Inter Milan" },
+                { name: "Julián Alvarez", position: "Forward", club: "Atlético Madrid" },
+                { name: "Leandro Paredes", position: "Midfielder", club: "Boca Juniors" },
+                { name: "Alexis Mac Allister", position: "Midfielder", club: "Liverpool" },
+                { name: "Cristian Romero", position: "Defender", club: "Tottenham Hotspur" },
+                { name: "Nicolás Tagliafico", position: "Defender", club: "Lyon" },
+                { name: "Enzo Fernández", position: "Midfielder", club: "Chelsea" },
+                { name: "Nahuel Molina", position: "Defender", club: "Atlético Madrid" },
+                { name: "Giovani Lo Celso", position: "Midfielder", club: "Betis" },
+                { name: "Alejandro Garnacho", position: "Forward", club: "Chelsea" }
+            ]
+        },
+        uzbekistan: {
+            name: "Uzbekistan",
+            flag: "🇺🇿",
+            players: [
+                { name: "Eldor Shomurodov", position: "Forward", club: "İstanbul Başakşehir" },
+                { name: "Otabek Shukurov", position: "Midfielder", club: "Baniyas" },
+                { name: "Jaloliddin Masharipov", position: "Midfielder", club: "Esteghlal" },
+                { name: "Abbosbek Fayzullaev", position: "Midfielder", club: "İstanbul Başakşehir" },
+                { name: "Rustam Ashurmatov", position: "Defender", club: "Esteghlal" },
+                { name: "Utkir Yusupov", position: "Goalkeeper", club: "Navbahor" },
+                { name: "Abdukodir Khusanov", position: "Defender", club: "Manchester City" },
+                { name: "Oston Urunov", position: "Midfielder", club: "Persepolis" },
+                { name: "Igor Sergeev", position: "Forward", club: "Persepolis" },
+                { name: "Farrukh Sayfiev", position: "Defender", club: "Neftchi" },
+                { name: "Khojiakbar Alijonov", position: "Defender", club: "Pakhtakor" }
+            ]
+        }
+    };
+
     // Global state
     let allPlayers = [];
     let draftedIds = [];
     let historyStack = [];
     let searchTerm = "";
     let positionTerm = "all";
-    let apiKey = localStorage.getItem('fifa_api_key') || '';
+    let nationTerm = "all";
+    let clubTerm = "all";
+    let currentTeam = "all";
 
-    // DOM Elements
-    const apiKeyInput = document.getElementById('apiKeyInput');
-    const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
-    const loadPlayersBtn = document.getElementById('loadPlayersBtn');
-    const seasonSelect = document.getElementById('seasonSelect');
-    const teamFilter = document.getElementById('teamFilter');
-    const statusMessage = document.getElementById('statusMessage');
-    const apiKeyStatus = document.getElementById('apiKeyStatus');
-
-    // Load saved API key on page load
-    if (apiKey) {
-        apiKeyInput.value = '••••••••••••••••';
-        showApiKeyStatus('✅ API key loaded', 'text-green-600');
-    }
-
-    // Save API key
-    saveApiKeyBtn.addEventListener('click', () => {
-        const newKey = apiKeyInput.value.trim();
-        if (newKey && newKey !== '••••••••••••••••') {
-            localStorage.setItem('fifa_api_key', newKey);
-            apiKey = newKey;
-            showApiKeyStatus('✅ API key saved successfully!', 'text-green-600');
-            setTimeout(() => hideApiKeyStatus(), 2000);
-        } else if (newKey === '••••••••••••••••' && apiKey) {
-            showApiKeyStatus('✅ API key already saved', 'text-green-600');
-            setTimeout(() => hideApiKeyStatus(), 2000);
-        } else {
-            showApiKeyStatus('⚠️ Please enter a valid API key', 'text-red-600');
-        }
-    });
-
-    function showApiKeyStatus(message, colorClass) {
-        apiKeyStatus.textContent = message;
-        apiKeyStatus.className = `text-xs mt-1 ${colorClass}`;
-        apiKeyStatus.classList.remove('hidden');
-    }
-
-    function hideApiKeyStatus() {
-        setTimeout(() => {
-            apiKeyStatus.classList.add('hidden');
-        }, 2000);
-    }
-
-    function showStatus(message, isError = false) {
-        statusMessage.textContent = message;
-        statusMessage.className = `mt-3 text-xs text-center ${isError ? 'text-red-600' : 'text-green-600'}`;
-        statusMessage.classList.remove('hidden');
-        setTimeout(() => {
-            statusMessage.classList.add('hidden');
-        }, 3000);
-    }
-
-    // Fetch teams for a season
-    async function fetchTeams(season) {
-        if (!apiKey) {
-            showStatus('Please save your API key first', true);
-            return [];
-        }
-
-        try {
-            const response = await fetch(`https://api.balldontlie.io/fifa/worldcup/v1/teams?seasons[]=${season}`, {
-                headers: { 'Authorization': apiKey }
-            });
-
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-            return data.data || [];
-        } catch (error) {
-            console.error('Error fetching teams:', error);
-            return [];
-        }
-    }
-
-    // Fetch players from API
-    async function fetchPlayers(season, teamId = null) {
-        if (!apiKey) {
-            showStatus('Please save your API key first', true);
-            return [];
-        }
-
-        showStatus('Loading players from FIFA API...');
+    // Build master player list
+    function buildPlayerList(teamKey = "all") {
+        const players = [];
         
-        try {
-            let allPlayersData = [];
-            let url = `https://api.balldontlie.io/fifa/worldcup/v1/players?seasons[]=${season}&per_page=100`;
-            
-            if (teamId) {
-                url += `&team_ids[]=${teamId}`;
-            }
-
-            const response = await fetch(url, {
-                headers: { 'Authorization': apiKey }
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Invalid API key. Please check your key and try again.');
-                }
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            const data = await response.json();
-            allPlayersData = data.data || [];
-
-            // Fetch team names for these players
-            const teamsResponse = await fetch(`https://api.balldontlie.io/fifa/worldcup/v1/teams?seasons[]=${season}`, {
-                headers: { 'Authorization': apiKey }
-            });
-            
-            const teamsData = await teamsResponse.json();
-            const teamsMap = {};
-            (teamsData.data || []).forEach(team => {
-                teamsMap[team.id] = team.name;
-            });
-
-            // Transform to our format
-            const players = [];
-            for (const player of allPlayersData) {
-                // Get player's team from roster (simplified - in real implementation you'd need roster endpoint)
-                // For now, we'll note that the free tier doesn't include team mapping per player
-                const positionMap = {
-                    'F': 'Forward', 'FW': 'Forward', 'ST': 'Forward',
-                    'M': 'Midfielder', 'MF': 'Midfielder',
-                    'D': 'Defender', 'DF': 'Defender', 'CB': 'Defender',
-                    'GK': 'Goalkeeper'
-                };
-                
-                let position = player.position || 'Midfielder';
-                position = positionMap[position] || 'Midfielder';
-                
-                players.push({
-                    id: `p_${player.id}`,
-                    name: player.name || 'Unknown',
-                    position: position,
-                    club: player.country_name || 'National Team',
-                    jersey: player.jersey_number || '',
-                    height: player.height_cm || '',
-                    playerId: player.id
+        if (teamKey === "all") {
+            for (const [key, team] of Object.entries(teamData)) {
+                team.players.forEach((player, idx) => {
+                    players.push({
+                        id: `${key}_${player.name.replace(/\s/g, '')}_${idx}`,
+                        name: player.name,
+                        position: player.position,
+                        club: player.club,
+                        team: team.name,
+                        teamFlag: team.flag,
+                        teamKey: key
+                    });
                 });
             }
+        } else if (teamData[teamKey]) {
+            const team = teamData[teamKey];
+            team.players.forEach((player, idx) => {
+                players.push({
+                    id: `${teamKey}_${player.name.replace(/\s/g, '')}_${idx}`,
+                    name: player.name,
+                    position: player.position,
+                    club: player.club,
+                    team: team.name,
+                    teamFlag: team.flag,
+                    teamKey: teamKey
+                });
+            });
+        }
+        
+        return players;
+    }
 
-            showStatus(`✅ Loaded ${players.length} players from ${season} World Cup!`);
-            return players;
-
-        } catch (error) {
-            console.error('Error fetching players:', error);
-            showStatus(`❌ Error: ${error.message}`, true);
-            return [];
+    // Update filter dropdowns based on current players
+    function updateFilterOptions() {
+        // Get unique nations
+        const nations = [...new Set(allPlayers.map(p => p.team))].sort();
+        const nationSelect = document.getElementById("nationFilter");
+        const currentNation = nationSelect.value;
+        nationSelect.innerHTML = '<option value="all">🌍 All nations</option>';
+        nations.forEach(nation => {
+            nationSelect.innerHTML += `<option value="${nation}">${nation}</option>`;
+        });
+        if (currentNation !== "all" && nations.includes(currentNation)) {
+            nationSelect.value = currentNation;
+        } else if (currentNation !== "all") {
+            nationTerm = "all";
+        }
+        
+        // Get unique clubs
+        const clubs = [...new Set(allPlayers.map(p => p.club))].sort();
+        const clubSelect = document.getElementById("clubFilter");
+        const currentClub = clubSelect.value;
+        clubSelect.innerHTML = '<option value="all">🏆 All clubs</option>';
+        clubs.forEach(club => {
+            clubSelect.innerHTML += `<option value="${club}">${club}</option>`;
+        });
+        if (currentClub !== "all" && clubs.includes(currentClub)) {
+            clubSelect.value = currentClub;
+        } else if (currentClub !== "all") {
+            clubTerm = "all";
         }
     }
 
-    // Load teams when season changes
-    seasonSelect.addEventListener('change', async () => {
-        if (!apiKey) {
-            teamFilter.innerHTML = '<option value="">All Teams (save API key first)</option>';
-            return;
+    // Update active filters display
+    function updateActiveFilters() {
+        const activeFiltersDiv = document.getElementById("activeFilters");
+        const filters = [];
+        
+        if (searchTerm) {
+            filters.push(`<span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full"><i class="fas fa-search"></i> "${searchTerm}"</span>`);
+        }
+        if (positionTerm !== "all") {
+            filters.push(`<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full"><i class="fas fa-futbol"></i> ${positionTerm}</span>`);
+        }
+        if (nationTerm !== "all") {
+            filters.push(`<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full"><i class="fas fa-flag"></i> ${nationTerm}</span>`);
+        }
+        if (clubTerm !== "all") {
+            filters.push(`<span class="bg-purple-100 text-purple-700 px-2 py-1 rounded-full"><i class="fas fa-building"></i> ${clubTerm}</span>`);
         }
         
-        const season = seasonSelect.value;
-        teamFilter.innerHTML = '<option value="">Loading teams...</option>';
+        if (filters.length > 0) {
+            activeFiltersDiv.innerHTML = `<span class="text-gray-500 text-xs mr-1">Active filters:</span> ${filters.join(' ')}`;
+        } else {
+            activeFiltersDiv.innerHTML = '';
+        }
+    }
+
+    // Load team
+    function loadTeam(teamKey) {
+        currentTeam = teamKey;
+        allPlayers = buildPlayerList(teamKey);
+        draftedIds = [];
+        historyStack = [];
+        searchTerm = "";
+        positionTerm = "all";
+        nationTerm = "all";
+        clubTerm = "all";
         
-        const teams = await fetchTeams(season);
-        teamFilter.innerHTML = '<option value="">All Teams</option>';
+        // Reset filter inputs
+        document.getElementById("searchInput").value = "";
+        document.getElementById("positionFilter").value = "all";
         
-        teams.forEach(team => {
-            teamFilter.innerHTML += `<option value="${team.id}">${team.name} (${team.abbreviation})</option>`;
+        updateFilterOptions();
+        updateActiveFilters();
+        
+        const teamInfo = document.getElementById("teamInfo");
+        if (teamKey === "all") {
+            teamInfo.innerHTML = "🌍 Showing all teams · " + allPlayers.length + " players available";
+        } else if (teamData[teamKey]) {
+            teamInfo.innerHTML = `${teamData[teamKey].flag} ${teamData[teamKey].name} · ${allPlayers.length} players in squad`;
+        }
+        
+        refreshUI();
+    }
+
+    function getPosColor(pos) {
+        const colors = {
+            'Goalkeeper': 'bg-amber-100 text-amber-700',
+            'Defender': 'bg-purple-100 text-purple-700',
+            'Midfielder': 'bg-blue-100 text-blue-700',
+            'Forward': 'bg-green-100 text-green-700'
+        };
+        return colors[pos] || 'bg-gray-100 text-gray-600';
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
         });
-    });
+    }
 
-    // Load players button
-    loadPlayersBtn.addEventListener('click', async () => {
-        if (!apiKey) {
-            showStatus('Please save your API key first', true);
-            return;
-        }
-
-        const season = seasonSelect.value;
-        const teamId = teamFilter.value;
-        
-        const players = await fetchPlayers(season, teamId || null);
-        
-        if (players.length > 0) {
-            allPlayers = players;
-            draftedIds = [];
-            historyStack = [];
-            refreshUI();
-        }
-    });
-
-    // Draft functions
     function draftPlayer(playerId) {
         if (draftedIds.includes(playerId)) return;
         
@@ -407,43 +502,27 @@
         draftPlayer(available[randomIndex].id);
     }
 
-    // Helper functions
-    function getPosColor(pos) {
-        const colors = {
-            'Forward': 'bg-green-100 text-green-700',
-            'Midfielder': 'bg-blue-100 text-blue-700',
-            'Defender': 'bg-purple-100 text-purple-700',
-            'Goalkeeper': 'bg-amber-100 text-amber-700'
-        };
-        return colors[pos] || 'bg-gray-100 text-gray-600';
-    }
-
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
-
     function refreshUI() {
         // Filter available players
         let available = allPlayers.filter(p => !draftedIds.includes(p.id));
         available = available.filter(p => {
             const matchSearch = searchTerm === "" || 
                 p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                p.club.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                p.position.toLowerCase().includes(searchTerm.toLowerCase());
+                p.team.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                p.club.toLowerCase().includes(searchTerm.toLowerCase());
             const matchPos = positionTerm === "all" || p.position === positionTerm;
-            return matchSearch && matchPos;
+            const matchNation = nationTerm === "all" || p.team === nationTerm;
+            const matchClub = clubTerm === "all" || p.club === clubTerm;
+            return matchSearch && matchPos && matchNation && matchClub;
         });
 
         // Render available players
         const availableContainer = document.getElementById("availableContainer");
         if (available.length === 0) {
-            availableContainer.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">No available players</div>`;
+            availableContainer.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">
+                <i class="fas fa-user-slash text-3xl mb-2 block"></i>
+                No players match your filters
+            </div>`;
         } else {
             availableContainer.innerHTML = available.map(player => `
                 <div class="bg-gray-50 rounded-xl p-3 border border-gray-200 card-hover flex justify-between items-center shadow-sm">
@@ -453,8 +532,10 @@
                             <span class="badge-pos ${getPosColor(player.position)}">${player.position}</span>
                         </div>
                         <div class="text-xs text-gray-500 mt-1">
-                            <i class="fas fa-flag"></i> ${escapeHtml(player.club)}
-                            ${player.jersey ? `<span class="ml-2"><i class="fas fa-tshirt"></i> #${player.jersey}</span>` : ''}
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="inline-flex items-center gap-1">${player.teamFlag} ${escapeHtml(player.team)}</span>
+                                <span class="inline-flex items-center gap-1"><i class="fas fa-building"></i> ${escapeHtml(player.club)}</span>
+                            </div>
                         </div>
                     </div>
                     <button onclick="draftPlayer('${player.id}')" class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm btn-action ml-2">
@@ -469,7 +550,10 @@
         const draftedPlayers = draftedIds.map(id => allPlayers.find(p => p.id === id)).filter(p => p);
         
         if (draftedPlayers.length === 0) {
-            draftedContainer.innerHTML = `<div class="text-center py-12 text-gray-400">Draft board empty — select your stars</div>`;
+            draftedContainer.innerHTML = `<div class="text-center py-12 text-gray-400">
+                <i class="fas fa-clipboard-list text-3xl mb-2 block"></i>
+                Draft board empty — select your stars
+            </div>`;
         } else {
             draftedContainer.innerHTML = draftedPlayers.map((player, idx) => `
                 <div class="bg-indigo-50/40 border border-indigo-100 rounded-xl p-3 flex justify-between items-center shadow-sm">
@@ -477,7 +561,7 @@
                         <span class="bg-indigo-200 text-indigo-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">${idx+1}</span>
                         <div>
                             <div class="font-semibold text-gray-800">${escapeHtml(player.name)}</div>
-                            <div class="text-xs text-gray-500">${player.position} · ${escapeHtml(player.club)}</div>
+                            <div class="text-xs text-gray-500">${player.position} · ${player.teamFlag} ${escapeHtml(player.team)} · ${escapeHtml(player.club)}</div>
                         </div>
                     </div>
                     <button onclick="removeDraft('${player.id}')" class="text-red-500 hover:text-red-700 bg-white rounded-full w-7 h-7 flex items-center justify-center shadow-sm transition">
@@ -489,26 +573,53 @@
 
         document.getElementById("draftedCount").innerText = draftedIds.length;
         document.getElementById("availableCount").innerText = allPlayers.length - draftedIds.length;
-        document.getElementById("sourceInfo").innerHTML = `⚽ FIFA World Cup ${seasonSelect.value} · ${allPlayers.length} players loaded`;
     }
 
     // Event listeners
+    document.querySelectorAll('.team-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const team = btn.getAttribute('data-team');
+            loadTeam(team);
+        });
+    });
+
     document.getElementById("undoBtn").addEventListener("click", undo);
     document.getElementById("resetDraftBtn").addEventListener("click", resetDraft);
     document.getElementById("randomPickBtn").addEventListener("click", randomPick);
     document.getElementById("clearFiltersBtn").addEventListener("click", () => {
         searchTerm = "";
         positionTerm = "all";
+        nationTerm = "all";
+        clubTerm = "all";
         document.getElementById("searchInput").value = "";
         document.getElementById("positionFilter").value = "all";
+        document.getElementById("nationFilter").value = "all";
+        document.getElementById("clubFilter").value = "all";
+        updateActiveFilters();
         refreshUI();
     });
+    
     document.getElementById("searchInput").addEventListener("input", (e) => {
         searchTerm = e.target.value;
+        updateActiveFilters();
         refreshUI();
     });
+    
     document.getElementById("positionFilter").addEventListener("change", (e) => {
         positionTerm = e.target.value;
+        updateActiveFilters();
+        refreshUI();
+    });
+    
+    document.getElementById("nationFilter").addEventListener("change", (e) => {
+        nationTerm = e.target.value;
+        updateActiveFilters();
+        refreshUI();
+    });
+    
+    document.getElementById("clubFilter").addEventListener("change", (e) => {
+        clubTerm = e.target.value;
+        updateActiveFilters();
         refreshUI();
     });
 
@@ -516,10 +627,8 @@
     window.draftPlayer = draftPlayer;
     window.removeDraft = removeDraft;
     
-    // Initial load of teams if API key exists
-    if (apiKey) {
-        seasonSelect.dispatchEvent(new Event('change'));
-    }
+    // Load all teams by default
+    loadTeam("all");
 </script>
 </body>
 </html>
